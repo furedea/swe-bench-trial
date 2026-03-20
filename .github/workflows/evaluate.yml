@@ -13,12 +13,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install swebench
-        run: pip install swebench
+      - uses: astral-sh/setup-uv@v5
+
+      - name: Install dependencies
+        run: uv sync --frozen
 
       - name: Run evaluation
         run: |
-          python -m swebench.harness.run_evaluation \
+          uv run python -m swebench.harness.run_evaluation \
             --dataset_name princeton-nlp/SWE-bench_Lite \
             --predictions_path outputs/predictions.jsonl \
             --max_workers 1 \
