@@ -25,6 +25,10 @@ jobs:
             --instance_ids astropy__astropy-12907 \
             --run_id trial-01
 
+      - name: Print results
+        if: always()
+        run: cat logs/run_evaluation/trial-01/claude-sonnet-4-6/astropy__astropy-12907/report.json
+
       - name: Upload results
         if: always()
         uses: actions/upload-artifact@v4
