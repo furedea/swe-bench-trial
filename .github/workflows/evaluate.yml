@@ -1,0 +1,33 @@
+name: SWE-bench Evaluation
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - outputs/predictions.jsonl
+
+jobs:
+  evaluate:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install swebench
+        run: pip install swebench
+
+      - name: Run evaluation
+        run: |
+          python -m swebench.harness.run_evaluation \
+            --dataset_name princeton-nlp/SWE-bench_Lite \
+            --predictions_path outputs/predictions.jsonl \
+            --max_workers 1 \
+            --instance_ids astropy__astropy-12907 \
+            --run_id trial-01
+
+      - name: Upload results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: eval-results
+          path: logs/
