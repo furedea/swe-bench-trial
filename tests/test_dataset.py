@@ -2,11 +2,11 @@
 
 from pathlib import Path
 from typing import Any
-from unittest.mock import MagicMock, call, patch
 
 import pytest
+from pytest_mock import MockerFixture
 
-from dataset import DEFAULT_INSTANCE_ID, SWEInstance, load_instance, setup_repo
+import dataset
 
 
 def test_swe_instance_from_dict_returns_correct_fields() -> None:
@@ -16,7 +16,7 @@ def test_swe_instance_from_dict_returns_correct_fields() -> None:
         "base_commit": "abc123def456abc123def456abc123def456abc1",
         "problem_statement": "Fix the bug in units",
     }
-    instance = SWEInstance.from_dict(row)
+    instance = dataset.SWEInstance.from_dict(row)
     assert instance.instance_id == "astropy__astropy-12907"
     assert instance.repo == "astropy/astropy"
     assert instance.base_commit == "abc123def456abc123def456abc123def456abc1"
@@ -26,43 +26,40 @@ def test_swe_instance_from_dict_returns_correct_fields() -> None:
 def test_swe_instance_from_dict_raises_on_missing_key() -> None:
     row: dict[str, Any] = {"instance_id": "foo"}
     with pytest.raises(KeyError):
-        SWEInstance.from_dict(row)
+        dataset.SWEInstance.from_dict(row)
 
 
-def test_load_instance_returns_matching_instance() -> None:
+def test_load_instance_returns_matching_instance(mocker: MockerFixture) -> None:
     mock_row: dict[str, Any] = {
-        "instance_id": DEFAULT_INSTANCE_ID,
+        "instance_id": dataset.DEFAULT_INSTANCE_ID,
         "repo": "astropy/astropy",
         "base_commit": "abc123def456abc123def456abc123def456abc1",
         "problem_statement": "Fix the bug",
     }
+    mock_load = mocker.patch("dataset.datasets.load_dataset", return_value=[mock_row])
 
-    with patch("dataset.load_dataset") as mock_load:
-        mock_load.return_value = [mock_row]
-        instance = load_instance(DEFAULT_INSTANCE_ID)
+    instance = dataset.load_instance(dataset.DEFAULT_INSTANCE_ID)
 
-    assert instance.instance_id == DEFAULT_INSTANCE_ID
+    assert instance.instance_id == dataset.DEFAULT_INSTANCE_ID
     mock_load.assert_called_once_with("princeton-nlp/SWE-bench_Lite", split="test")
 
 
-def test_load_instance_raises_on_unknown_id() -> None:
-    with patch("dataset.load_dataset") as mock_load:
-        mock_load.return_value = []
-        with pytest.raises(ValueError, match="Instance not found"):
-            load_instance("nonexistent__repo-0")
+def test_load_instance_raises_on_unknown_id(mocker: MockerFixture) -> None:
+    mocker.patch("dataset.datasets.load_dataset", return_value=[])
+    with pytest.raises(ValueError, match="Instance not found"):
+        dataset.load_instance("nonexistent__repo-0")
 
 
-def test_setup_repo_clones_and_checks_out(tmp_path: Path) -> None:
-    instance = SWEInstance(
+def test_setup_repo_clones_and_checks_out(tmp_path: Path, mocker: MockerFixture) -> None:
+    instance = dataset.SWEInstance(
         instance_id="astropy__astropy-12907",
         repo="astropy/astropy",
         base_commit="abc123",
         problem_statement="Fix the bug",
     )
+    mock_run = mocker.patch("dataset.subprocess.run")
 
-    with patch("dataset.subprocess.run") as mock_run:
-        mock_run.return_value = MagicMock(returncode=0)
-        result = setup_repo(instance, tmp_path)
+    result = dataset.setup_repo(instance, tmp_path)
 
     expected_path = tmp_path / "astropy__astropy-12907"
     assert result == expected_path
@@ -78,8 +75,8 @@ def test_setup_repo_clones_and_checks_out(tmp_path: Path) -> None:
     )
 
 
-def test_setup_repo_skips_clone_if_exists(tmp_path: Path) -> None:
-    instance = SWEInstance(
+def test_setup_repo_skips_clone_if_exists(tmp_path: Path, mocker: MockerFixture) -> None:
+    instance = dataset.SWEInstance(
         instance_id="astropy__astropy-12907",
         repo="astropy/astropy",
         base_commit="abc123",
@@ -87,9 +84,9 @@ def test_setup_repo_skips_clone_if_exists(tmp_path: Path) -> None:
     )
     existing = tmp_path / "astropy__astropy-12907"
     existing.mkdir()
+    mock_run = mocker.patch("dataset.subprocess.run")
 
-    with patch("dataset.subprocess.run") as mock_run:
-        result = setup_repo(instance, tmp_path)
+    result = dataset.setup_repo(instance, tmp_path)
 
     assert result == existing
     mock_run.assert_not_called()

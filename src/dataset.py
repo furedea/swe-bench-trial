@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Self
 
-from datasets import load_dataset
+import datasets
 
 
 DEFAULT_INSTANCE_ID = "astropy__astropy-12907"
@@ -22,7 +22,17 @@ class SWEInstance:
 
     @classmethod
     def from_dict(cls, row: dict[str, Any]) -> Self:
-        """Construct from a HuggingFace dataset row. KeyError propagates naturally."""
+        """Construct from a HuggingFace dataset row.
+
+        Args:
+            row (dict[str, Any]): Dataset row with instance_id, repo, base_commit, problem_statement.
+
+        Returns:
+            Self: Constructed SWEInstance.
+
+        Raises:
+            KeyError: When a required field is missing from row.
+        """
         return cls(
             instance_id=row["instance_id"],
             repo=row["repo"],
@@ -32,8 +42,18 @@ class SWEInstance:
 
 
 def load_instance(instance_id: str = DEFAULT_INSTANCE_ID) -> SWEInstance:
-    """Load one instance from SWE-bench Lite test split."""
-    dataset = load_dataset("princeton-nlp/SWE-bench_Lite", split="test")
+    """Load one instance from SWE-bench Lite test split.
+
+    Args:
+        instance_id (str): SWE-bench instance ID.
+
+    Returns:
+        SWEInstance: The matching instance.
+
+    Raises:
+        ValueError: When the instance ID is not found in the dataset.
+    """
+    dataset = datasets.load_dataset("princeton-nlp/SWE-bench_Lite", split="test")
     rows = [r for r in dataset if r["instance_id"] == instance_id]
     if not rows:
         raise ValueError(f"Instance not found: {instance_id}")
@@ -41,13 +61,28 @@ def load_instance(instance_id: str = DEFAULT_INSTANCE_ID) -> SWEInstance:
 
 
 def setup_repo(instance: SWEInstance, workspace_dir: Path) -> Path:
-    """Clone repo at base_commit into workspace_dir. Skip if already exists."""
+    """Clone the instance repo at base_commit into workspace_dir.
+
+    Skips cloning if the directory already exists.
+
+    Args:
+        instance (SWEInstance): SWE-bench instance with repo and base_commit.
+        workspace_dir (Path): Directory to clone into.
+
+    Returns:
+        Path: Path to the cloned repository root.
+    """
     repo_path = workspace_dir / instance.instance_id
     if repo_path.exists():
         return repo_path
-
-    workspace_dir.mkdir(parents=True, exist_ok=True)
-    clone_url = f"https://github.com/{instance.repo}.git"
-    subprocess.run(["git", "clone", clone_url, str(repo_path)], check=True)
-    subprocess.run(["git", "checkout", instance.base_commit], cwd=repo_path, check=True)
+    _clone(instance, repo_path, workspace_dir)
     return repo_path
+
+
+def _clone(instance: SWEInstance, repo_path: Path, workspace_dir: Path) -> None:
+    workspace_dir.mkdir(parents=True, exist_ok=True)
+    subprocess.run(
+        ["git", "clone", f"https://github.com/{instance.repo}.git", str(repo_path)],
+        check=True,
+    )
+    subprocess.run(["git", "checkout", instance.base_commit], cwd=repo_path, check=True)
