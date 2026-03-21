@@ -2,15 +2,6 @@ name: SWE-bench Evaluation
 
 on:
   workflow_dispatch:
-    inputs:
-      mode:
-        description: "Inference mode to evaluate"
-        required: true
-        default: "agent"
-        type: choice
-        options:
-          - agent
-          - one_shot
   push:
     paths:
       - outputs/predictions_agent.jsonl
@@ -32,6 +23,9 @@ jobs:
     timeout-minutes: 30
     permissions:
       contents: read
+    strategy:
+      matrix:
+        mode: [agent, one_shot]
 
     steps:
       - uses: actions/checkout@v4.2.2
@@ -41,24 +35,11 @@ jobs:
       - name: Install dependencies
         run: uv sync --frozen
 
-      - name: Resolve mode
-        id: resolve
-        run: |
-          MODE="${{ inputs.mode }}"
-          if [ -z "$MODE" ]; then
-            if git diff --name-only HEAD~1 HEAD | grep -q "predictions_one_shot"; then
-              MODE="one_shot"
-            else
-              MODE="agent"
-            fi
-          fi
-          echo "mode=$MODE" >> "$GITHUB_OUTPUT"
-
       - name: Run evaluation
         run: |
           uv run python -m swebench.harness.run_evaluation \
             --dataset_name princeton-nlp/SWE-bench_Lite \
-            --predictions_path "outputs/predictions_${{ steps.resolve.outputs.mode }}.jsonl" \
+            --predictions_path "outputs/predictions_${{ matrix.mode }}.jsonl" \
             --max_workers 1 \
             --instance_ids astropy__astropy-12907 \
             --run_id trial-01
@@ -71,5 +52,5 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4.6.0
         with:
-          name: eval-results-${{ steps.resolve.outputs.mode }}
+          name: eval-results-${{ matrix.mode }}
           path: logs/
