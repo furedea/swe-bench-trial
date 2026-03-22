@@ -27,7 +27,7 @@ def main() -> None:
         raise RuntimeError("Empty patch generated")
 
     save_prediction(instance.instance_id, _model_label(args.model), patch, output)
-    print(f"Saved patch ({len(patch)} chars) to {args.output}")
+    print(f"Saved patch ({len(patch)} chars) to {output}")
 
 
 def _build_parser() -> argparse.ArgumentParser:

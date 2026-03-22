@@ -35,4 +35,19 @@ def _infer(prompt_text: str, model_name: str) -> str:
     # content is None when the model returns an empty response
     content = response.choices[0].message.content or ""
     # extract_diff returns the original string when no diff block is found; fall back to ""
-    return extract_diff(content) or ""
+    patch = (extract_diff(content) or "").strip()
+    return _ensure_git_diff_header(patch)
+
+
+def _ensure_git_diff_header(patch: str) -> str:
+    """Prepend 'diff --git' headers to each file section if missing."""
+    if not patch or "diff --git" in patch:
+        return patch
+    lines = patch.splitlines(keepends=True)
+    result = []
+    for line in lines:
+        if line.startswith("--- a/"):
+            path = line[6:].rstrip()
+            result.append(f"diff --git a/{path} b/{path}\n")
+        result.append(line)
+    return "".join(result)

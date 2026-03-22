@@ -16,8 +16,7 @@ def build_prompt(problem_statement: str, files: tuple[retrieval.RetrievedFile, .
     sections = [
         problem_statement,
         *_format_files(files),
-        "Please output a git diff patch to resolve the issue."
-        " Use the standard git diff format starting with 'diff --git a/<path> b/<path>'.",
+        "Please output a unified diff patch to resolve the issue.",
     ]
     return "\n\n".join(sections)
 
