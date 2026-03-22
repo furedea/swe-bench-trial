@@ -7,6 +7,7 @@ import pytest
 from pytest_mock import MockerFixture
 
 import agent
+import dataset
 
 
 @pytest.fixture
@@ -38,9 +39,9 @@ def test_collect_patch_returns_empty_when_no_changes(git_repo: Path) -> None:
 
 def test_run_agent_calls_mini_with_correct_args(tmp_path: Path, mocker: MockerFixture) -> None:
     mock_run = mocker.patch("agent.subprocess.run")
-    mocker.patch("agent.collect_patch", return_value="diff --git a/fix.py")
+    task = dataset.SWETask(tmp_path, "Fix the bug in units", "claude-sonnet-4-6")
 
-    result = agent.run_agent(tmp_path, "Fix the bug in units", "claude-sonnet-4-6")
+    agent.run_agent(task)
 
     mock_run.assert_called_once_with(
         [
@@ -55,4 +56,3 @@ def test_run_agent_calls_mini_with_correct_args(tmp_path: Path, mocker: MockerFi
         cwd=tmp_path,
         check=True,
     )
-    assert result == "diff --git a/fix.py"

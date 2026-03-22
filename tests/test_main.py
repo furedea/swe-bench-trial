@@ -11,12 +11,9 @@ import main
 
 def test_save_prediction_writes_valid_jsonl(tmp_path: Path) -> None:
     output_path = tmp_path / "predictions.jsonl"
-    main.save_prediction(
-        instance_id="astropy__astropy-12907",
-        model_label="claude-sonnet-4-6",
-        patch="diff --git a/fix.py",
-        output_path=output_path,
-    )
+    result = main.PatchResult("astropy__astropy-12907", "claude-sonnet-4-6", "diff --git a/fix.py")
+
+    main.save_prediction(result, output_path)
 
     lines = output_path.read_text().strip().splitlines()
     assert len(lines) == 1
@@ -28,11 +25,18 @@ def test_save_prediction_writes_valid_jsonl(tmp_path: Path) -> None:
 
 def test_save_prediction_appends_on_multiple_calls(tmp_path: Path) -> None:
     output_path = tmp_path / "predictions.jsonl"
-    main.save_prediction("id-1", "claude-sonnet-4-6", "patch-1", output_path)
-    main.save_prediction("id-2", "claude-sonnet-4-6", "patch-2", output_path)
+    main.save_prediction(main.PatchResult("id-1", "claude-sonnet-4-6", "patch-1"), output_path)
+    main.save_prediction(main.PatchResult("id-2", "claude-sonnet-4-6", "patch-2"), output_path)
 
     lines = output_path.read_text().strip().splitlines()
     assert len(lines) == 2
+
+
+def test_patch_result_is_frozen() -> None:
+    result = main.PatchResult("id-1", "model", "patch")
+
+    with pytest.raises(AttributeError):
+        result.patch = "other"  # type: ignore[misc]
 
 
 def test_main_raises_if_api_key_missing(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -50,8 +54,9 @@ def test_main_agent_mode_raises_if_patch_empty(
     mock_instance.instance_id = "astropy__astropy-12907"
     mock_instance.problem_statement = "Fix the bug"
     mocker.patch("main.dataset.load_instance", return_value=mock_instance)
-    mocker.patch("main.dataset.setup_repo", return_value=tmp_path)
-    mocker.patch("main.agent.run_agent", return_value="")
+    mocker.patch("main.dataset.setup_repo")
+    mocker.patch("main.agent.run_agent")
+    mocker.patch("main.agent.collect_patch", return_value="")
 
     with pytest.raises(RuntimeError, match="Empty patch"):
         main.main()
@@ -67,8 +72,9 @@ def test_main_agent_mode_saves_prediction(
     mock_instance.instance_id = "astropy__astropy-12907"
     mock_instance.problem_statement = "Fix the bug"
     mocker.patch("main.dataset.load_instance", return_value=mock_instance)
-    mocker.patch("main.dataset.setup_repo", return_value=tmp_path)
-    mocker.patch("main.agent.run_agent", return_value="diff --git a/fix.py")
+    mocker.patch("main.dataset.setup_repo")
+    mocker.patch("main.agent.run_agent")
+    mocker.patch("main.agent.collect_patch", return_value="diff --git a/fix.py")
 
     main.main()
 
@@ -87,7 +93,7 @@ def test_main_one_shot_mode_saves_prediction(
     mock_instance.instance_id = "astropy__astropy-12907"
     mock_instance.problem_statement = "Fix the bug"
     mocker.patch("main.dataset.load_instance", return_value=mock_instance)
-    mocker.patch("main.dataset.setup_repo", return_value=tmp_path)
+    mocker.patch("main.dataset.setup_repo")
     mocker.patch("main.one_shot.run_one_shot", return_value="diff --git a/fix.py")
 
     main.main()

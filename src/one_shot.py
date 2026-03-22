@@ -1,53 +1,60 @@
 """Run one-shot inference pipeline: retrieve files, build prompt, infer patch."""
 
+import re
 from pathlib import Path
 
 import litellm
-from swebench.inference.make_datasets.utils import extract_diff
 
+import dataset
 import model
 import prompt
 import retrieval
 
 
-def run_one_shot(repo_path: Path, problem_statement: str, model_name: str, top_k: int) -> str:
-    """Retrieve relevant files, build a prompt, and return the extracted diff.
+def run_one_shot(task: dataset.SWETask, top_k: int, prompt_template: Path) -> str:
+    """Retrieve relevant files, build a prompt, and return the extracted patch.
 
     Args:
-        repo_path (Path): Root of the cloned repository.
-        problem_statement (str): Issue description to solve.
-        model_name (str): Model name (e.g. claude-sonnet-4-6 or anthropic/claude-sonnet-4-6).
+        task (dataset.SWETask): Resolved SWE-bench task with repo, problem, and model.
         top_k (int): Number of files to retrieve for context.
+        prompt_template (Path): Path to the prompt template file.
 
     Returns:
-        str: Extracted unified diff string, empty if none found.
+        str: Unified diff extracted from model output; empty string if no diff found.
     """
-    files = retrieval.retrieve_files(repo_path, problem_statement, top_k)
-    prompt_text = prompt.build_prompt(problem_statement, files)
-    return _infer(prompt_text, model_name)
+    files = retrieval.retrieve_files(task.repo_path, task.problem_statement, top_k)
+    prompt_text = prompt.build_prompt(task.problem_statement, files, prompt_template)
+    content = _call_model(prompt_text, task.model_name)
+    return extract_diff(content)
 
 
-def _infer(prompt_text: str, model_name: str) -> str:
+def _call_model(prompt_text: str, model_name: str) -> str:
     response = litellm.completion(
         model=model.normalize_model_name(model_name),
         messages=[{"role": "user", "content": prompt_text}],
     )
-    # content is None when the model returns an empty response
-    content = response.choices[0].message.content or ""
-    # extract_diff returns the original string when no diff block is found; fall back to ""
-    patch = (extract_diff(content) or "").strip()
-    return _ensure_git_diff_header(patch)
+    return response.choices[0].message.content or ""
 
 
-def _ensure_git_diff_header(patch: str) -> str:
-    """Prepend 'diff --git' headers to each file section if missing."""
-    if not patch or "diff --git" in patch:
-        return patch
-    lines = patch.splitlines(keepends=True)
-    result = []
-    for line in lines:
-        if line.startswith("--- a/"):
-            path = line[6:].rstrip()
-            result.append(f"diff --git a/{path} b/{path}\n")
-        result.append(line)
-    return "".join(result)
+def extract_diff(content: str) -> str:
+    """Extract a unified diff from raw model output.
+
+    Args:
+        content (str): Raw text returned by the model.
+
+    Returns:
+        str: Unified diff string; empty string if no diff pattern is found.
+    """
+    # Primary: model follows the few-shot format and wraps diff in <patch> tags.
+    match = re.search(r"<patch>(.*?)</patch>", content, re.DOTALL)
+    if match:
+        return match.group(1).strip()
+    # Fallback 1: model uses a fenced code block instead.
+    match = re.search(r"```(?:diff)?\s*\n(.*?)```", content, re.DOTALL)
+    if match:
+        return match.group(1).strip()
+    # Fallback 2: raw diff with no wrapper.
+    match = re.search(r"(--- a/.*)", content, re.DOTALL)
+    if match:
+        return match.group(1).strip()
+    return ""

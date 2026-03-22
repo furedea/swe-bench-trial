@@ -41,7 +41,16 @@ class SWEInstance:
         )
 
 
-def load_instance(instance_id: str = DEFAULT_INSTANCE_ID) -> SWEInstance:
+@dataclass(frozen=True, slots=True)
+class SWETask:
+    """A resolved SWE-bench task ready for inference."""
+
+    repo_path: Path
+    problem_statement: str
+    model_name: str
+
+
+def load_instance(instance_id: str) -> SWEInstance:
     """Load one instance from SWE-bench Lite test split.
 
     Args:
@@ -60,23 +69,20 @@ def load_instance(instance_id: str = DEFAULT_INSTANCE_ID) -> SWEInstance:
     return SWEInstance.from_dict(rows[0])
 
 
-def setup_repo(instance: SWEInstance, workspace_dir: Path) -> Path:
-    """Clone the instance repo at base_commit into workspace_dir.
+def setup_repo(instance: SWEInstance, workspace_dir: Path) -> None:
+    """Clone the instance repo at base_commit into workspace_dir, then reset to base_commit.
 
-    Skips cloning if the directory already exists.
+    Clones if the directory does not exist. Always resets to base_commit to ensure
+    a clean state regardless of prior runs.
 
     Args:
         instance (SWEInstance): SWE-bench instance with repo and base_commit.
         workspace_dir (Path): Directory to clone into.
-
-    Returns:
-        Path: Path to the cloned repository root.
     """
     repo_path = workspace_dir / instance.instance_id
-    if repo_path.exists():
-        return repo_path
-    _clone(instance, repo_path, workspace_dir)
-    return repo_path
+    if not repo_path.exists():
+        _clone(instance, repo_path, workspace_dir)
+    _reset(instance.base_commit, repo_path)
 
 
 def _clone(instance: SWEInstance, repo_path: Path, workspace_dir: Path) -> None:
@@ -85,4 +91,8 @@ def _clone(instance: SWEInstance, repo_path: Path, workspace_dir: Path) -> None:
         ["git", "clone", f"https://github.com/{instance.repo}.git", str(repo_path)],
         check=True,
     )
-    subprocess.run(["git", "checkout", instance.base_commit], cwd=repo_path, check=True)
+
+
+def _reset(base_commit: str, repo_path: Path) -> None:
+    subprocess.run(["git", "reset", "--hard", base_commit], cwd=repo_path, check=True)
+    subprocess.run(["git", "clean", "-fd"], cwd=repo_path, check=True)

@@ -3,25 +3,20 @@
 import subprocess
 from pathlib import Path
 
+import dataset
 import model
 
 
-def run_agent(repo_path: Path, problem_statement: str, model_name: str) -> str:
-    """Run mini-swe-agent on a repository and return the resulting patch.
+def run_agent(task: dataset.SWETask) -> None:
+    """Run mini-swe-agent on a repository.
 
     Args:
-        repo_path (Path): Path to the cloned repository.
-        problem_statement (str): Issue description to solve.
-        model_name (str): Model name (e.g. claude-sonnet-4-6 or anthropic/claude-sonnet-4-6).
-
-    Returns:
-        str: Unified diff string of changes made by the agent.
+        task (dataset.SWETask): Resolved SWE-bench task with repo, problem, and model.
 
     Raises:
         subprocess.CalledProcessError: When mini-swe-agent exits with non-zero status.
     """
-    subprocess.run(_mini_cmd(problem_statement, model_name), cwd=repo_path, check=True)
-    return collect_patch(repo_path)
+    subprocess.run(_mini_cmd(task.problem_statement, task.model_name), cwd=task.repo_path, check=True)
 
 
 def _mini_cmd(problem_statement: str, model_name: str) -> list[str]:

@@ -50,7 +50,7 @@ def test_load_instance_raises_on_unknown_id(mocker: MockerFixture) -> None:
         dataset.load_instance("nonexistent__repo-0")
 
 
-def test_setup_repo_clones_and_checks_out(tmp_path: Path, mocker: MockerFixture) -> None:
+def test_setup_repo_clones_and_resets(tmp_path: Path, mocker: MockerFixture) -> None:
     instance = dataset.SWEInstance(
         instance_id="astropy__astropy-12907",
         repo="astropy/astropy",
@@ -59,17 +59,21 @@ def test_setup_repo_clones_and_checks_out(tmp_path: Path, mocker: MockerFixture)
     )
     mock_run = mocker.patch("dataset.subprocess.run")
 
-    result = dataset.setup_repo(instance, tmp_path)
+    dataset.setup_repo(instance, tmp_path)
 
     expected_path = tmp_path / "astropy__astropy-12907"
-    assert result == expected_path
-    assert mock_run.call_count == 2
+    assert mock_run.call_count == 3
     mock_run.assert_any_call(
         ["git", "clone", "https://github.com/astropy/astropy.git", str(expected_path)],
         check=True,
     )
     mock_run.assert_any_call(
-        ["git", "checkout", "abc123"],
+        ["git", "reset", "--hard", "abc123"],
+        cwd=expected_path,
+        check=True,
+    )
+    mock_run.assert_any_call(
+        ["git", "clean", "-fd"],
         cwd=expected_path,
         check=True,
     )
@@ -86,7 +90,14 @@ def test_setup_repo_skips_clone_if_exists(tmp_path: Path, mocker: MockerFixture)
     existing.mkdir()
     mock_run = mocker.patch("dataset.subprocess.run")
 
-    result = dataset.setup_repo(instance, tmp_path)
+    dataset.setup_repo(instance, tmp_path)
 
-    assert result == existing
-    mock_run.assert_not_called()
+    # clone is skipped, but reset + clean always run
+    assert mock_run.call_count == 2
+
+
+def test_swe_task_is_frozen() -> None:
+    task = dataset.SWETask(Path("/repo"), "Fix bug", "claude-sonnet-4-6")
+
+    with pytest.raises(AttributeError):
+        task.model_name = "other"  # type: ignore[misc]
