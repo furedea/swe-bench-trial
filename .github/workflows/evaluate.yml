@@ -20,7 +20,7 @@ defaults:
 jobs:
   evaluate:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 60
     permissions:
       contents: read
     strategy:
@@ -46,7 +46,7 @@ jobs:
 
       - name: Print results
         if: always()
-        run: cat logs/run_evaluation/trial-01/claude-sonnet-4-6/astropy__astropy-12907/report.json
+        run: cat logs/run_evaluation/trial-01/*/astropy__astropy-12907/report.json
 
       - name: Upload results
         if: always()
