@@ -1,6 +1,7 @@
 # swe-bench-trial
 
-SWE-bench Lite で Claude Sonnet 4.6 の推論性能を試すトライアルプロジェクト．
+SWE-bench Lite データセットから1つのインスタンスを選び，Claude Sonnet 4.6 でパッチ生成から評価までの一連の流れを試すトライアルプロジェクト．
+デフォルトでは `astropy__astropy-12907`（astropy の separability matrix バグ）を対象とする．
 
 ## 概要
 
