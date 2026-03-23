@@ -164,3 +164,7 @@ uv run --frozen pytest
 - **Inference はローカル実行**（mini-swe-agent, Docker 不要）
 - **Evaluation は Actions 実行**（x86_64 Linux + Docker が必要なため Apple Silicon では非推奨）
 - `workspace/` と `.env` は gitignore 済み
+
+## ライセンス
+
+[MIT](LICENSE)
