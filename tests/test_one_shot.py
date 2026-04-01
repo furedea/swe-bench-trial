@@ -19,11 +19,11 @@ def prompt_template(tmp_path: Path) -> Path:
 
 @pytest.fixture
 def task(tmp_path: Path) -> dataset.SWETask:
-    return dataset.SWETask(tmp_path, "Fix the bug", "claude-sonnet-4-6")
+    return dataset.SWETask(repo_path=tmp_path, problem_statement="Fix the bug", model_name="claude-sonnet-4-6")
 
 
 def _mock_files(tmp_path: Path) -> tuple[retrieval.RetrievedFile, ...]:
-    return (retrieval.RetrievedFile(tmp_path / "fix.py", "x = 1"),)
+    return (retrieval.RetrievedFile(path=tmp_path / "fix.py", content="x = 1"),)
 
 
 def test_run_one_shot_calls_correct_model_name(

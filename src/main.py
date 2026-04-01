@@ -3,16 +3,15 @@
 import argparse
 import json
 import os
-from dataclasses import dataclass
 from pathlib import Path
 
 import agent
+import base
 import dataset
 import one_shot
 
 
-@dataclass(frozen=True, slots=True)
-class PatchResult:
+class PatchResult(base.FrozenModel):
     """Result of patch generation for one SWE-bench instance."""
 
     instance_id: str
@@ -37,7 +36,7 @@ def main() -> None:
     if not patch:
         raise RuntimeError("Empty patch generated")
 
-    result = PatchResult(instance.instance_id, _model_label(args.model), patch)
+    result = PatchResult(instance_id=instance.instance_id, model_label=_model_label(args.model), patch=patch)
     save_prediction(result, args.output)
     print(f"Saved patch ({len(patch)} chars) to {args.output}")
 
@@ -61,7 +60,7 @@ def _build_parser() -> argparse.ArgumentParser:
 def _run_patch(instance: dataset.SWEInstance, args: argparse.Namespace) -> str:
     dataset.setup_repo(instance, args.workspace)
     repo_path = args.workspace / instance.instance_id
-    task = dataset.SWETask(repo_path, instance.problem_statement, args.model)
+    task = dataset.SWETask(repo_path=repo_path, problem_statement=instance.problem_statement, model_name=args.model)
     match args.mode:
         case "agent":
             agent.run_agent(task)

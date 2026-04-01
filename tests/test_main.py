@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 
 import pytest
+import pydantic
 from pytest_mock import MockerFixture
 
 import main
@@ -11,7 +12,9 @@ import main
 
 def test_save_prediction_writes_valid_jsonl(tmp_path: Path) -> None:
     output_path = tmp_path / "predictions.jsonl"
-    result = main.PatchResult("astropy__astropy-12907", "claude-sonnet-4-6", "diff --git a/fix.py")
+    result = main.PatchResult(
+        instance_id="astropy__astropy-12907", model_label="claude-sonnet-4-6", patch="diff --git a/fix.py"
+    )
 
     main.save_prediction(result, output_path)
 
@@ -25,17 +28,21 @@ def test_save_prediction_writes_valid_jsonl(tmp_path: Path) -> None:
 
 def test_save_prediction_appends_on_multiple_calls(tmp_path: Path) -> None:
     output_path = tmp_path / "predictions.jsonl"
-    main.save_prediction(main.PatchResult("id-1", "claude-sonnet-4-6", "patch-1"), output_path)
-    main.save_prediction(main.PatchResult("id-2", "claude-sonnet-4-6", "patch-2"), output_path)
+    main.save_prediction(
+        main.PatchResult(instance_id="id-1", model_label="claude-sonnet-4-6", patch="patch-1"), output_path
+    )
+    main.save_prediction(
+        main.PatchResult(instance_id="id-2", model_label="claude-sonnet-4-6", patch="patch-2"), output_path
+    )
 
     lines = output_path.read_text().strip().splitlines()
     assert len(lines) == 2
 
 
 def test_patch_result_is_frozen() -> None:
-    result = main.PatchResult("id-1", "model", "patch")
+    result = main.PatchResult(instance_id="id-1", model_label="model", patch="patch")
 
-    with pytest.raises(AttributeError):
+    with pytest.raises(pydantic.ValidationError):
         result.patch = "other"  # type: ignore[misc]
 
 

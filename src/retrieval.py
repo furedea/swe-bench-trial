@@ -1,13 +1,13 @@
 """BM25-based file retrieval from a repository."""
 
-from dataclasses import dataclass
 from pathlib import Path
 
 from rank_bm25 import BM25Okapi
 
+import base
 
-@dataclass(frozen=True, slots=True)
-class RetrievedFile:
+
+class RetrievedFile(base.FrozenModel):
     path: Path
     content: str
 
@@ -36,4 +36,4 @@ def _rank(py_files: list[Path], query: str, top_k: int) -> tuple[RetrievedFile, 
     bm25 = BM25Okapi([doc.split() for doc in contents])
     scores = bm25.get_scores(query.split())
     ranked = sorted(zip(scores, py_files, contents), key=lambda x: x[0], reverse=True)
-    return tuple(RetrievedFile(path, content) for _, path, content in ranked[:top_k])
+    return tuple(RetrievedFile(path=path, content=content) for _, path, content in ranked[:top_k])

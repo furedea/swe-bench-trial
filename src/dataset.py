@@ -1,18 +1,16 @@
 """SWE-bench Lite instance loading and repository setup."""
 
 import subprocess
-from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Self
 
 import datasets
 
+import base
 
 DEFAULT_INSTANCE_ID = "astropy__astropy-12907"
 
 
-@dataclass(frozen=True, slots=True)
-class SWEInstance:
+class SWEInstance(base.FrozenModel):
     """A single SWE-bench task instance."""
 
     instance_id: str
@@ -20,29 +18,8 @@ class SWEInstance:
     base_commit: str
     problem_statement: str
 
-    @classmethod
-    def from_dict(cls, row: dict[str, Any]) -> Self:
-        """Construct from a HuggingFace dataset row.
 
-        Args:
-            row (dict[str, Any]): Dataset row with instance_id, repo, base_commit, problem_statement.
-
-        Returns:
-            Self: Constructed SWEInstance.
-
-        Raises:
-            KeyError: When a required field is missing from row.
-        """
-        return cls(
-            instance_id=row["instance_id"],
-            repo=row["repo"],
-            base_commit=row["base_commit"],
-            problem_statement=row["problem_statement"],
-        )
-
-
-@dataclass(frozen=True, slots=True)
-class SWETask:
+class SWETask(base.FrozenModel):
     """A resolved SWE-bench task ready for inference."""
 
     repo_path: Path
@@ -66,7 +43,7 @@ def load_instance(instance_id: str) -> SWEInstance:
     rows = [r for r in dataset if r["instance_id"] == instance_id]
     if not rows:
         raise ValueError(f"Instance not found: {instance_id}")
-    return SWEInstance.from_dict(rows[0])
+    return SWEInstance.model_validate(rows[0])
 
 
 def setup_repo(instance: SWEInstance, workspace_dir: Path) -> None:

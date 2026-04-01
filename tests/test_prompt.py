@@ -16,7 +16,7 @@ def template(tmp_path: Path) -> Path:
 
 
 def test_build_prompt_contains_problem_statement(template: Path) -> None:
-    files = (retrieval.RetrievedFile(Path("units.py"), "class Unit: pass\n"),)
+    files = (retrieval.RetrievedFile(path=Path("units.py"), content="class Unit: pass\n"),)
 
     result = prompt.build_prompt("Fix the unit bug", files, template)
 
@@ -24,7 +24,7 @@ def test_build_prompt_contains_problem_statement(template: Path) -> None:
 
 
 def test_build_prompt_contains_file_path_and_content(template: Path) -> None:
-    files = (retrieval.RetrievedFile(Path("units.py"), "class Unit: pass\n"),)
+    files = (retrieval.RetrievedFile(path=Path("units.py"), content="class Unit: pass\n"),)
 
     result = prompt.build_prompt("Fix the unit bug", files, template)
 
@@ -34,8 +34,8 @@ def test_build_prompt_contains_file_path_and_content(template: Path) -> None:
 
 def test_build_prompt_contains_multiple_files(template: Path) -> None:
     files = (
-        retrieval.RetrievedFile(Path("a.py"), "x = 1\n"),
-        retrieval.RetrievedFile(Path("b.py"), "y = 2\n"),
+        retrieval.RetrievedFile(path=Path("a.py"), content="x = 1\n"),
+        retrieval.RetrievedFile(path=Path("b.py"), content="y = 2\n"),
     )
 
     result = prompt.build_prompt("Fix something", files, template)
@@ -64,7 +64,7 @@ def test_format_file_with_lines_adds_line_numbers() -> None:
 
 
 def test_build_prompt_wraps_files_with_line_numbers(template: Path) -> None:
-    files = (retrieval.RetrievedFile(Path("m.py"), "a = 1\nb = 2"),)
+    files = (retrieval.RetrievedFile(path=Path("m.py"), content="a = 1\nb = 2"),)
 
     result = prompt.build_prompt("bug", files, template)
 

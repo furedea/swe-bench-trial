@@ -39,7 +39,9 @@ def test_collect_patch_returns_empty_when_no_changes(git_repo: Path) -> None:
 
 def test_run_agent_calls_mini_with_correct_args(tmp_path: Path, mocker: MockerFixture) -> None:
     mock_run = mocker.patch("agent.subprocess.run")
-    task = dataset.SWETask(tmp_path, "Fix the bug in units", "claude-sonnet-4-6")
+    task = dataset.SWETask(
+        repo_path=tmp_path, problem_statement="Fix the bug in units", model_name="claude-sonnet-4-6"
+    )
 
     agent.run_agent(task)
 

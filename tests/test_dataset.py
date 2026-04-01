@@ -4,29 +4,30 @@ from pathlib import Path
 from typing import Any
 
 import pytest
+import pydantic
 from pytest_mock import MockerFixture
 
 import dataset
 
 
-def test_swe_instance_from_dict_returns_correct_fields() -> None:
+def test_swe_instance_model_validate_returns_correct_fields() -> None:
     row: dict[str, Any] = {
         "instance_id": "astropy__astropy-12907",
         "repo": "astropy/astropy",
         "base_commit": "abc123def456abc123def456abc123def456abc1",
         "problem_statement": "Fix the bug in units",
     }
-    instance = dataset.SWEInstance.from_dict(row)
+    instance = dataset.SWEInstance.model_validate(row)
     assert instance.instance_id == "astropy__astropy-12907"
     assert instance.repo == "astropy/astropy"
     assert instance.base_commit == "abc123def456abc123def456abc123def456abc1"
     assert instance.problem_statement == "Fix the bug in units"
 
 
-def test_swe_instance_from_dict_raises_on_missing_key() -> None:
+def test_swe_instance_model_validate_raises_on_missing_key() -> None:
     row: dict[str, Any] = {"instance_id": "foo"}
-    with pytest.raises(KeyError):
-        dataset.SWEInstance.from_dict(row)
+    with pytest.raises(pydantic.ValidationError):
+        dataset.SWEInstance.model_validate(row)
 
 
 def test_load_instance_returns_matching_instance(mocker: MockerFixture) -> None:
@@ -56,7 +57,7 @@ def test_setup_repo_clones_and_resets(tmp_path: Path, mocker: MockerFixture) -> 
         repo="astropy/astropy",
         base_commit="abc123",
         problem_statement="Fix the bug",
-    )
+    )  # keyword args: Pydantic BaseModel does not support positional arguments
     mock_run = mocker.patch("dataset.subprocess.run")
 
     dataset.setup_repo(instance, tmp_path)
@@ -85,7 +86,7 @@ def test_setup_repo_skips_clone_if_exists(tmp_path: Path, mocker: MockerFixture)
         repo="astropy/astropy",
         base_commit="abc123",
         problem_statement="Fix the bug",
-    )
+    )  # keyword args: Pydantic BaseModel does not support positional arguments
     existing = tmp_path / "astropy__astropy-12907"
     existing.mkdir()
     mock_run = mocker.patch("dataset.subprocess.run")
@@ -97,7 +98,7 @@ def test_setup_repo_skips_clone_if_exists(tmp_path: Path, mocker: MockerFixture)
 
 
 def test_swe_task_is_frozen() -> None:
-    task = dataset.SWETask(Path("/repo"), "Fix bug", "claude-sonnet-4-6")
+    task = dataset.SWETask(repo_path=Path("/repo"), problem_statement="Fix bug", model_name="claude-sonnet-4-6")
 
-    with pytest.raises(AttributeError):
+    with pytest.raises(pydantic.ValidationError):
         task.model_name = "other"  # type: ignore[misc]
