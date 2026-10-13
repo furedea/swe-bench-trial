@@ -1,5 +1,10 @@
 # swe-bench-trial
 
+A trial project that runs the full SWE-bench workflow, from patch generation to harness evaluation, on one SWE-bench Lite instance (`astropy__astropy-12907`) with Claude Sonnet 4.6.
+Patches are generated locally in two modes: `agent` (mini-swe-agent) and `one_shot` (BM25 file retrieval plus a single LLM call via litellm).
+Evaluation runs the `swebench` harness on GitHub Actions (ubuntu-latest, x86_64).
+Both modes resolved the instance: all FAIL_TO_PASS tests passed with no PASS_TO_FAIL regressions.
+
 SWE-bench Lite データセットから1つのインスタンスを選び，Claude Sonnet 4.6 でパッチ生成から評価までの一連の流れを試すトライアルプロジェクト．
 デフォルトでは `astropy__astropy-12907`（astropy の separability matrix バグ）を対象とする．
 
