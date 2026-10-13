@@ -24,11 +24,13 @@ src/
   one_shot.py   # ファイル検索 → プロンプト構築 → LLM 推論 → diff 抽出
   agent.py      # mini-swe-agent 実行（コマンド）+ git diff 回収（クエリ）
   model.py      # モデル名のプロバイダプレフィックス正規化
+  base.py       # 共通基底 FrozenModel（frozen / strict / extra="forbid" の Pydantic モデル）
 prompts/
   prompt_template.txt        # one_shot 用プロンプトテンプレート（prompt_style_2 準拠）
 outputs/
   predictions_agent.jsonl    # agent モードの生成済みパッチ
   predictions_one_shot.jsonl # one_shot モードの生成済みパッチ
+eval-results-agent/          # agent 評価結果（swebench report.json 等）
 eval-results-one-shot/       # one_shot 評価結果（swebench report.json 等）
 .github/workflows/
   evaluate.yml               # swebench 評価ワークフロー（agent / one_shot matrix）
