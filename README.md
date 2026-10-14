@@ -1,5 +1,10 @@
 # swe-bench-trial
 
+A trial project that runs the full SWE-bench workflow, from patch generation to harness evaluation, on one SWE-bench Lite instance (`astropy__astropy-12907`) with Claude Sonnet 4.6.
+Patches are generated locally in two modes: `agent` (mini-swe-agent) and `one_shot` (BM25 file retrieval plus a single LLM call via litellm).
+Evaluation runs the `swebench` harness on GitHub Actions (ubuntu-latest, x86_64).
+Both modes resolved the instance: all FAIL_TO_PASS tests passed with no PASS_TO_FAIL regressions.
+
 SWE-bench Lite データセットから1つのインスタンスを選び，Claude Sonnet 4.6 でパッチ生成から評価までの一連の流れを試すトライアルプロジェクト．
 デフォルトでは `astropy__astropy-12907`（astropy の separability matrix バグ）を対象とする．
 
@@ -19,11 +24,13 @@ src/
   one_shot.py   # ファイル検索 → プロンプト構築 → LLM 推論 → diff 抽出
   agent.py      # mini-swe-agent 実行（コマンド）+ git diff 回収（クエリ）
   model.py      # モデル名のプロバイダプレフィックス正規化
+  base.py       # 共通基底 FrozenModel（frozen / strict / extra="forbid" の Pydantic モデル）
 prompts/
   prompt_template.txt        # one_shot 用プロンプトテンプレート（prompt_style_2 準拠）
 outputs/
   predictions_agent.jsonl    # agent モードの生成済みパッチ
   predictions_one_shot.jsonl # one_shot モードの生成済みパッチ
+eval-results-agent/          # agent 評価結果（swebench report.json 等）
 eval-results-one-shot/       # one_shot 評価結果（swebench report.json 等）
 .github/workflows/
   evaluate.yml               # swebench 評価ワークフロー（agent / one_shot matrix）
